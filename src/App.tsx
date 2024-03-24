@@ -1,22 +1,39 @@
-import React, { useState, useEffect, useRef, useMemo, useImperativeHandle, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import './App.css';
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from 'three';
-import { OrbitControls, PerspectiveCamera, } from '@react-three/drei';
+import { OrbitControls, OrbitControlsProps, PerspectiveCamera } from '@react-three/drei';
 import { useSpring, animated, config } from '@react-spring/three';
-
+import TWEEN from '@tweenjs/tween.js'
 import { Environment } from './Environment/Environment.jsx';
 import { Car } from './Car/Car.jsx';
-import TWEEN from '@tweenjs/tween.js'
-
-
-
 
 function App() {
   const [active, setActive] = useState(false);
-  const props = useSpring({ position: active ? [0.75, 1.8, 0 - 0.8] : [5, 5, 8] })
-  const camera = useRef<THREE.PerspectiveCamera>();
+  const ref = useRef<any>(!null)
 
+  // Define the spring-animated properties
+  const { position } = useSpring({
+    position: active ? [0.75, 1.8, -0.8] : [5, 5, 8],
+    config: config.default
+  });
+
+  const handleClick = () => {
+    setActive(!active);
+    () => {
+      new TWEEN.Tween(ref.current.target)
+        .to(
+          {
+            x: 0,
+            y: 3,
+            z: 8
+          },
+          500
+        )
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start()
+    }
+  }
 
   return (
     <>
@@ -26,31 +43,34 @@ function App() {
         <directionalLight color="red" position={[0, 0, 5]} intensity={1} />
         <Environment />
 
+        {/* Use the animated value for the camera */}
+        <animated.group
+          position={position.to((x, y, z) => [x, y, z])}
+        >
+          <PerspectiveCamera
+            makeDefault={true}
+            fov={active ? 80 : 60}
+          />
+        </animated.group>
 
-        {/* <OrbitControls  target={[0, 1, 0]} />
-        <PerspectiveCamera makeDefault position={[5, 5, 8]} /> */}
-        <OrbitControls target={active ? [0, 3, 8] : [0, 1, 0]} />
-        {/* <group position={active?[0.75, 1.8, 0-0.8]:[5,5,8]}> */}
-        <PerspectiveCamera
-          // ref={camera}
-          makeDefault
-          position={active ? [0.75, 1.8, 0 - 0.8] : [5, 5, 8]}
-          fov={active ? 80 : 60}
-        />
-        {/* </group> */}
+        <OrbitControls
+          ref={ref}
+          target={active ? [0, 3, 8] : [0, 1, 0]} />
 
         <mesh position={[0, 3, 8]}>
           <boxGeometry />
           <meshStandardMaterial />
         </mesh>
 
-
+        {/* Wrap the Car component in an animated.group */}
         <animated.group
-          onClick={(event) => setActive(!active)}>
+          // onClick={() => setActive(!active)}
+          onClick={handleClick}
+        >
           <Car />
         </animated.group>
+        <Tween />
       </Canvas>
-      {/* <div id='ui'>{buttons }</div> */}
     </>
   );
 }
@@ -61,4 +81,5 @@ function Tween() {
   useFrame(() => {
     TWEEN.update()
   })
+  return null
 }
