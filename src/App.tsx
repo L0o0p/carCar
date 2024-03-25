@@ -1,73 +1,195 @@
 import React, { useRef, useState } from 'react';
 import './App.css';
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from 'three';
 import { OrbitControls, OrbitControlsProps, PerspectiveCamera } from '@react-three/drei';
 import { useSpring, animated, config } from '@react-spring/three';
 import TWEEN from '@tweenjs/tween.js'
-import { Environment } from './Environment/Environment.jsx';
+import Env from './Environment/Env.jsx';
 import { Car } from './Car/Car.jsx';
+
+function Tween() {
+  useFrame(() => {
+    TWEEN.update()
+  })
+  return null
+}
+function InteractiveObject(props: any) {
+  const backObjectRef = useRef<any>();
+  const { camera, raycaster, pointer, size } = useThree();
+  const { onBackObjectClick } = props
+
+  const handlePointerDown = (event: any) => {
+    // 更新鼠标位置，event.clientX和event.clientY是屏幕坐标
+    // 将屏幕坐标转换到-1到1的范围内的标准化设备坐标 (NDC)
+    // 创建一个新的Vector2来存储NDC坐标
+    const pointer = new THREE.Vector2();
+    pointer.x = ((event.clientX) / size.width) * 2 - 1;
+    pointer.y = -((event.clientY) / size.height) * 2 + 1;
+
+    // 使用THREE.Vector2实例作为参数
+    raycaster.setFromCamera(pointer, camera);
+
+    // 获取与射线相交的所有对象
+    const intersects = raycaster.intersectObjects([backObjectRef.current], true);
+
+    // 检查是否我们的特定对象被击中了
+    if (intersects.length > 0) {
+      onBackObjectClick?.();
+    }
+  };
+
+
+
+  return (
+    <mesh ref={backObjectRef} position={[0, 1, 0]} onPointerDown={handlePointerDown}>
+      {/* ...mesh的子组件，如geometry和material */}
+      <boxGeometry />
+      <meshStandardMaterial />
+    </mesh>
+  );
+}
 
 function App() {
   const [active, setActive] = useState(false);
-  const ref = useRef<any>(!null)
+  const controlRef = useRef<any>(!null)
+  const cameraRef = useRef<any>()
 
-  // Define the spring-animated properties
-  const { position } = useSpring({
-    position: active ? [0.75, 1.8, -0.8] : [5, 5, 8],
-    config: config.default
-  });
 
+  const toInCarAnimated = () => {
+    new TWEEN.Tween(controlRef.current.target)
+      .to(
+        {
+          x: 0,
+          y: 3,
+          z: 8
+        },
+        500
+      )
+      .easing(TWEEN.Easing.Cubic.Out)
+      .start()
+
+    new TWEEN.Tween(cameraRef.current.position)
+      .to(
+        {
+          x: 0.75,
+          y: 1.8,
+          z: -0.8
+        },
+        500
+      )
+      .easing(TWEEN.Easing.Cubic.Out)
+      .start()
+
+    new TWEEN.Tween(cameraRef.current.fov)
+      .to(
+        { fov: 80 },
+        500
+      )
+      .easing(TWEEN.Easing.Cubic.Out)
+      .start()
+  }
+
+  const toOutCarAnimated = () => {
+    new TWEEN.Tween(controlRef.current.target)
+      .to(
+        {
+          x: 0,
+          y: 1,
+          z: 0
+        },
+        500
+      )
+      .easing(TWEEN.Easing.Cubic.Out)
+      .start()
+
+    new TWEEN.Tween(cameraRef.current.position)
+      .to(
+        {
+          x: 5,
+          y: 5,
+          z: 8
+        },
+        500
+      )
+      .easing(TWEEN.Easing.Cubic.Out)
+      .start()
+
+    new TWEEN.Tween(cameraRef.current.fov)
+      .to(
+        { fov: 60 },
+        500
+      )
+      .easing(TWEEN.Easing.Cubic.Out)
+      .start()
+  }
+  // 点击事件
   const handleClick = () => {
     setActive(!active);
-    () => {
-      new TWEEN.Tween(ref.current.target)
-        .to(
-          {
-            x: 0,
-            y: 3,
-            z: 8
-          },
-          500
-        )
-        .easing(TWEEN.Easing.Cubic.Out)
-        .start()
+    if (active) {
+      toOutCarAnimated()
+    } else {
+      toInCarAnimated()
     }
+
+    console.log(
+      'target', controlRef.current.target,
+      'camera', cameraRef.current.position,
+      'active', active
+    )
   }
 
   return (
     <>
-      <button onClick={() => setActive(!active)}>Toggle</button>
+      <button onClick={() => handleClick()}>Toggle</button>
       <Canvas shadows={true} >
+        {/* 坐标轴辅助器 */}
         <axesHelper args={[10]} />
-        <directionalLight color="red" position={[0, 0, 5]} intensity={1} />
-        <Environment />
-
-        {/* Use the animated value for the camera */}
-        <animated.group
-          position={position.to((x, y, z) => [x, y, z])}
+        <group
+          position={[0, 5, 0]}
         >
-          <PerspectiveCamera
-            makeDefault={true}
-            fov={active ? 80 : 60}
-          />
-        </animated.group>
+          <Env />
+        </group>
+
+        <PerspectiveCamera
+          ref={cameraRef}
+          makeDefault={true}
+          position={[5, 3, 8]}
+          fov={60}
+        />
 
         <OrbitControls
-          ref={ref}
-          target={active ? [0, 3, 8] : [0, 1, 0]} />
+          ref={controlRef}
+          target={[0, 1, 0]}
+          maxDistance={15}
+          minDistance={0}
+          maxPolarAngle={active ? (Math.PI) : (Math.PI / 3)}
+          // 运动阻尼感
+          enableDamping={true}
+          dampingFactor={0.07}
+          zoomSpeed={3} // 镜头滚动速度
+          // 自动旋转
+          // autoRotate={active ? false : true}
+          autoRotateSpeed={-2}
 
-        <mesh position={[0, 3, 8]}>
+        />
+
+        {/* <mesh
+          // ref={backObjectRef}
+          position={[0, 1, 0]}
+          onClick={() => handleClick()}
+        >
           <boxGeometry />
           <meshStandardMaterial />
-        </mesh>
+        </mesh> */}
+        <InteractiveObject onBackObjectClick={handleClick} />
 
-        {/* Wrap the Car component in an animated.group */}
         <animated.group
-          // onClick={() => setActive(!active)}
-          onClick={handleClick}
+        // onClick={handleClick}
         >
-          <Car />
+          <Car
+          // onOneClick={() => handleClick()}
+          />
         </animated.group>
         <Tween />
       </Canvas>
@@ -77,9 +199,3 @@ function App() {
 
 export default App;
 
-function Tween() {
-  useFrame(() => {
-    TWEEN.update()
-  })
-  return null
-}
