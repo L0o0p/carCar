@@ -123,6 +123,7 @@ function App() {
       .easing(TWEEN.Easing.Cubic.Out)
       .start()
   }
+  const [onLight, setOnLight] = useState(false);
   // 点击事件
   const handleClick = () => {
     setActive(!active);
@@ -137,14 +138,19 @@ function App() {
       'camera', cameraRef.current.position,
       'active', active
     )
+
+    setOnLight(!onLight)
   }
+
+  const Look = active ? 'Look outCar' : 'Look inCar'
+
 
   return (
     <>
-      <button onClick={() => handleClick()}>Toggle</button>
+      <button className={'layout'} onClick={() => handleClick()}>{Look}</button>
       <Canvas shadows={true} >
         {/* 坐标轴辅助器 */}
-        <axesHelper args={[10]} />
+        {/* <axesHelper args={[10]} /> */}
         <group
           position={[0, 5, 0]}
         >
@@ -169,7 +175,7 @@ function App() {
           dampingFactor={0.07}
           zoomSpeed={3} // 镜头滚动速度
           // 自动旋转
-          // autoRotate={active ? false : true}
+          autoRotate={active ? false : true}
           autoRotateSpeed={-2}
 
         />
@@ -182,15 +188,15 @@ function App() {
           <boxGeometry />
           <meshStandardMaterial />
         </mesh> */}
-        <InteractiveObject onBackObjectClick={handleClick} />
 
-        <animated.group
-        // onClick={handleClick}
-        >
-          <Car
-          // onOneClick={() => handleClick()}
-          />
-        </animated.group>
+        {/* <animated.group */}
+        {/* // onClick={handleClick} */}
+        {/* > */}
+        <Car
+          onLight={onLight}
+        // onOneClick={() => handleClick()}
+        />
+        {/* </animated.group> */}
         <Tween />
       </Canvas>
     </>

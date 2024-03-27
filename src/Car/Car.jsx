@@ -28,23 +28,24 @@ export function Car(props) {
         rotation: clickedL ? [0, -Math.PI / 3, 0] : [0, 0, 0],
     });
 
-    const [onLight, setOnLight] = useState(false);
+    // eslint-disable-next-line react/prop-types
+    const { onLight } = props
     const lightIntensity = onLight ? 1000 : 0;
 
+    // eslint-disable-next-line react/prop-types
     const { onOneClick } = props
 
     function onCarClick() {
-        setOnLight(!onLight)
+        // setOnLight(!onLight)
         onOneClick?.(); // 在确认是函数后调用
     }
-
 
     return (
         <>
             {/* 右门 */}
             <a.group position={[0 - x, 0 - y, 0 - z]}
                 rotation={rotationR}
-                onClick={() => click(!clicked)}
+                onClick={() => { click(!clicked); onCarClick() }}
             >
                 {/* eslint-disable-next-line react/no-unknown-property */}
                 <group position={[0 + x, 0 + y, 0 + z]}>
@@ -55,7 +56,7 @@ export function Car(props) {
             {/* 左门 */}
             <a.group position={[0 + xa, 0 + ya, 0 + za]}
                 rotation={rotationL}
-                onClick={() => clickL(!clickedL)}
+                onClick={() => { clickL(!clickedL); onCarClick() }}
             >
 
                 {/* eslint-disable-next-line react/no-unknown-property */}
@@ -66,8 +67,8 @@ export function Car(props) {
 
             {/* 车身 */}
             <animated.group
-                // ref={backObjectRef}
-                onClick={onCarClick}
+            // ref={backObjectRef}
+            // onClick={onCarClick}
             >
                 <CarRest />
             </animated.group>
