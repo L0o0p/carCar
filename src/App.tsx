@@ -2,11 +2,17 @@ import React, { useRef, useState } from 'react';
 import './App.css';
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from 'three';
-import { OrbitControls, OrbitControlsProps, PerspectiveCamera } from '@react-three/drei';
-import { useSpring, animated, config } from '@react-spring/three';
+import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+// import { useSpring, animated, config } from '@react-spring/three';
 import TWEEN from '@tweenjs/tween.js'
 import Env from './Environment/Env.jsx';
 import { Car } from './Car/Car.jsx';
+import { Globals } from '@react-spring/three';
+
+Globals.assign({
+  frameLoop: "always",
+});
+
 
 function Tween() {
   useFrame(() => {
